@@ -194,7 +194,7 @@ public class InGameCommand {
     }
 
     private LiteralArgumentBuilder<CommandSourceStack> discordMessageSubCommand() {
-        return Commands.literal("sendMsg")
+        return Commands.literal("sendmsg")
                 .requires(Permissions.require("justsync.sendmsg", CompatUtil.getPermissionLevel(CompatUtil.PermissionLevel.ADMINS)))
                 .then(Commands.argument("message", StringArgumentType.greedyString())
                 .executes(this::sendDiscordMessage));
