@@ -105,7 +105,7 @@ public class ConsoleBridge extends ListenerAdapter {
         if (this.messageSender == null || this.messageSender.hasChanged(message, null)) {
             this.messageSender =
                     new DiscordChatMessageSender(
-                            null, target, this.integration.getConfig(), message, null);
+                            null, target, this.integration.getConfig(), message, null, null);
         }
         this.messageSender.sendMessage();
     }

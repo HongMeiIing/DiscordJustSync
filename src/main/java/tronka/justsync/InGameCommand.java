@@ -202,7 +202,7 @@ public class InGameCommand {
 
     private int sendDiscordMessage(CommandContext<CommandSourceStack> context) {
         String msg = StringArgumentType.getString(context, "message");
-        this.integration.getChatBridge().sendMessageToDiscord(msg, null, null);
+        this.integration.getChatBridge().sendMessageToDiscord(msg, null, null, null);
         context.getSource().sendSuccess(() -> Component.literal("Sent message: ").append(Component.literal(msg).withStyle(
             ChatFormatting.ITALIC, ChatFormatting.GRAY)), false);
         return 1;

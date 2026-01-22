@@ -9,8 +9,11 @@ import java.util.Optional;
 import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.TimeUnit;
+import java.awt.Color;
 import net.dv8tion.jda.api.entities.Message;
 import net.dv8tion.jda.api.entities.channel.concrete.TextChannel;
+import net.dv8tion.jda.api.utils.messages.MessageCreateData;
+import net.dv8tion.jda.api.EmbedBuilder;
 import net.minecraft.server.level.ServerPlayer;
 import tronka.justsync.Utils;
 import tronka.justsync.config.Config;
@@ -19,6 +22,7 @@ public class DiscordChatMessageSender {
 
     private final String message;
     private final ServerPlayer sender;
+    private final Color embedColor;
     private final JDAWebhookClient webhookClient;
     private final TextChannel channel;
     private final Config config;
@@ -29,12 +33,13 @@ public class DiscordChatMessageSender {
     private CompletableFuture<Void> readyFuture;
 
     public DiscordChatMessageSender(JDAWebhookClient webhookClient, TextChannel channel, Config config, String message,
-        ServerPlayer sender) {
+        ServerPlayer sender, Color embedColor) {
         this.webhookClient = webhookClient;
         this.channel = channel;
         this.config = config;
         this.message = message;
         this.sender = sender;
+        this.embedColor = embedColor;
         this.repetitionCount = 0;
     }
 
@@ -97,19 +102,16 @@ public class DiscordChatMessageSender {
         this.editDiscordMessage();
     }
 
-    private String getMessage() {
-        if (this.sender != null) {
-            return Utils.escapeUnderscores(this.sender.getName().tryCollapseToString()) + ": " + this.message;
-        }
-        return this.message;
-    }
-
     private void sendMessageToDiscord() {
         if (this.sender != null && this.webhookClient != null) {
             this.sendAsWebhook();
             return;
         }
-        this.readyFuture = this.channel.sendMessage(this.getMessage()).submit().thenApply(Message::getIdLong)
+        if(this.embedColor != null) {
+            this.sendAsEmbed();
+            return;
+        }
+        this.readyFuture = this.channel.sendMessage(this.message).submit().thenApply(Message::getIdLong)
             .thenAccept(this::updateMessage).exceptionally(this::handleFailure);
     }
 
@@ -119,11 +121,14 @@ public class DiscordChatMessageSender {
             this.editAsWebhook(this.message + displayedCount);
             return;
         }
-        this.channel.editMessageById(this.messageId, this.getMessage() + displayedCount).submit()
+        this.channel.editMessageById(this.messageId, this.message + displayedCount).submit()
             .exceptionally(this::handleFailure);
     }
 
     private String getAvatarUrl(ServerPlayer player) {
+        if(player == null) {
+            return null;
+        }
         String avatarUrl = this.config
                 .avatarUrl
                 .replace("%UUID%", player.getUUID().toString())
@@ -148,6 +153,15 @@ public class DiscordChatMessageSender {
 
     private void editAsWebhook(String message) {
         this.webhookClient.edit(this.messageId, message).exceptionally(this::handleFailure);
+    }
+
+    private void sendAsEmbed() {
+        EmbedBuilder embed = new EmbedBuilder();
+        String avatarUrl = this.getAvatarUrl(this.sender);
+        embed = embed.setColor(this.embedColor).setAuthor(this.message, null, avatarUrl);
+        MessageCreateData message = MessageCreateData.fromEmbeds(embed.build());
+        this.readyFuture = this.channel.sendMessage(message).submit().thenApply(Message::getIdLong)
+            .thenAccept(this::updateMessage).exceptionally(this::handleFailure);
     }
 
     private <T> T handleFailure(Throwable t) {

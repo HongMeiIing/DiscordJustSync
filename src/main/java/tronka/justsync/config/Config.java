@@ -29,7 +29,7 @@ public class Config {
         "%randomUUID% - random uuid to prevent caching on some apis",
         "%textureId% - texture id instead of uuid (for use with e.g. SkinsRestorer)"
     })
-    public String avatarUrl = "https://minotar.net/helm/%UUID%?randomuuid=%randomUUID%";
+    public String avatarUrl = "https://minotar.net/helm/%UUID%?randomuuid=%randomUUID%/24";
     @TomlComment("The texture id used when no texture id was found (default is steve)")
     public String defaultAvatarTextureId = "989bf1511ab84c7cbbf3545af36b87dd";
 
@@ -208,20 +208,40 @@ public class Config {
         @TomlComment({"The message to display in discord when a player joins",
             "Placeholder: %user%: The player name of whoever joined"})
         public String playerJoinMessage = "%user% joined";
+        @TomlComment({"If set to hex code, sends the message as an embed with the encoded color",
+            "playerJoinColor = \"#57f287\""})
+        public String playerJoinColor = "";
         @TomlComment({"The message to display in discord when a player leaves",
             "Placeholder: %user%: The player name of whoever left"})
         public String playerLeaveMessage = "%user% left";
         @TomlComment({"The message to display in discord when a player times out",
             "Placeholder: %user%: The player name of whoever timed out"})
         public String playerTimeOutMessage = "%user% timed out";
+        @TomlComment({"If set to hex code, sends the message as an embed with the encoded color",
+            "playerLeaveColor = \"#ed4245\""})
+        public String playerLeaveColor = "";
         @TomlComment({"The formatting to use for commands sent to the console channel",
             "Placeholders:",
             "%user%: The user who received the advancement",
             "%title%: Advancement title",
             "%description%: Advancement description"})
         public String advancementMessage = "%user% just made the advancement **%title%**\n*%description%*";
+        @TomlComment({"If set to hex code, sends the message as an embed with the encoded color",
+            "advancementColor = \"#fee75c\""})
+        public String advancementColor = "";
+        @TomlComment({"If set to hex code, sends the message as an embed with the encoded color",
+            "playerDeathColor = \"#000000\""})
+        public String playerDeathColor = "";
+        @TomlComment({"Message to display in discord when the server starts"})
         public String startMessage = "Server started";
+        @TomlComment({"If set to hex code, sends the message as an embed with the encoded color",
+            "startColor = \"#57f287\""})
+        public String startColor = "";
+        @TomlComment({"Message to display in discord when the server stops"})
         public String stopMessage = "Server stopped";
+        @TomlComment({"If set to hex code, sends the message as an embed with the encoded color",
+            "stopColor = \"#ed4245\""})
+        public String stopColor = "";
         @TomlComment({
             "Formatting to use for the online player count status if there is more than 1 player online, related to showPlayerCountStatus",
             "Placeholder: %d: Player count"})

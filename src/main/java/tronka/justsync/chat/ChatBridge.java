@@ -5,6 +5,7 @@ import eu.pb4.placeholders.api.node.TextNode;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
+import java.awt.Color;
 
 import net.dv8tion.jda.api.entities.Activity;
 import net.dv8tion.jda.api.entities.Member;
@@ -35,11 +36,18 @@ public class ChatBridge extends ListenerAdapter {
     private DiscordChatMessageSender messageSender;
     private JDAWebhookClient webhookClient;
 
+    private Color fromHex(String hexColor) {
+        if(hexColor == "") {
+            return null;
+        }
+        return Color.decode(hexColor);
+    }
+
     public ChatBridge(JustSyncApplication integration) {
         this.integration = integration;
         ServerLifecycleEvents.SERVER_STOPPING.register(this::onServerStopping);
         integration.registerConfigReloadHandler(this::onConfigLoaded);
-        this.sendMessageToDiscord(integration.getConfig().messages.startMessage, null, null);
+        this.sendMessageToDiscord(integration.getConfig().messages.startMessage, null, null, fromHex(integration.getConfig().messages.startColor));
     }
 
     private void onConfigLoaded(Config config) {
@@ -151,13 +159,15 @@ public class ChatBridge extends ListenerAdapter {
 
     public void onPlayerJoin(ServerPlayer player, boolean vanish) {
         this.sendMessageToDiscord(this.integration.getConfig().messages.playerJoinMessage.replace("%user%",
-            Utils.escapeUnderscores(player.getName().getString())), null, player);
+            Utils.escapeUnderscores(player.getName().getString())), player, player,
+            fromHex(this.integration.getConfig().messages.playerJoinColor));
         this.updateRichPresence(vanish ? 0 : 1);
     }
 
     public void onPlayerTimeOut(ServerPlayer player) {
         this.sendMessageToDiscord(this.integration.getConfig().messages.playerTimeOutMessage.replace("%user%",
-                Utils.escapeUnderscores(player.getName().getString())), null, player);
+                Utils.escapeUnderscores(player.getName().getString())), player, player,
+                fromHex(this.integration.getConfig().messages.playerLeaveColor));
         this.updateRichPresence(-1);
     }
 
@@ -172,9 +182,11 @@ public class ChatBridge extends ListenerAdapter {
         String message = this.integration.getConfig().messages.playerLeaveMessage.replace("%user%",
                 Utils.escapeUnderscores(player.getName().getString()));
         if (vanish) {
-            this.sendMessageToDiscordUnchecked(message, null);
+            this.sendMessageToDiscordUnchecked(message, player,
+            fromHex(this.integration.getConfig().messages.playerLeaveColor));
         } else {
-            this.sendMessageToDiscord(message, null, player);
+            this.sendMessageToDiscord(message, player, player,
+            fromHex(this.integration.getConfig().messages.playerLeaveColor));
         }
         this.updateRichPresence(vanish ? 0 : -1);
     }
@@ -206,7 +218,8 @@ public class ChatBridge extends ListenerAdapter {
             if (message.equals("death.attack.badRespawnPoint")) {
                 message = "%s was killed by [Intentional Mod Design]".formatted(player.getName().getString());
             }
-            this.sendMessageToDiscord(Utils.escapeUnderscores(message), null, player);
+            this.sendMessageToDiscord(Utils.escapeUnderscores(message), player, player,
+            fromHex(this.integration.getConfig().messages.playerDeathColor));
         }
     }
 
@@ -215,7 +228,8 @@ public class ChatBridge extends ListenerAdapter {
             this.sendMessageToDiscord(this.integration.getConfig().messages.advancementMessage.replace("%user%",
                     Utils.escapeUnderscores(player.getName().getString()))
                 .replace("%title%", advancement.getTitle().getString())
-                .replace("%description%", advancement.getDescription().getString()), null, player);
+                .replace("%description%", advancement.getDescription().getString()), player, player,
+                fromHex(this.integration.getConfig().messages.advancementColor));
         }
     }
 
@@ -227,7 +241,8 @@ public class ChatBridge extends ListenerAdapter {
     }
 
     private void onServerStopping(MinecraftServer minecraftServer) {
-        this.sendMessageToDiscord(this.integration.getConfig().messages.stopMessage, null, null);
+        this.sendMessageToDiscord(this.integration.getConfig().messages.stopMessage, null, null,
+        fromHex(this.integration.getConfig().messages.stopColor));
         this.stopped = true;
     }
 
@@ -237,17 +252,20 @@ public class ChatBridge extends ListenerAdapter {
             message = Utils.formatXaero(message, this.integration.getConfig());
             message = Utils.formatVoxel(message, this.integration.getConfig(), player);
         }
-        this.sendMessageToDiscord(message, player, player);
+        if (this.webhookClient == null) {
+            message = Utils.escapeUnderscores(player.getName().tryCollapseToString()) + ": " + message;
+        }
+        this.sendMessageToDiscord(message, player, player, null);
     }
 
-    public void sendMessageToDiscord(String message, ServerPlayer sender, ServerPlayer connectedPlayer) {
+    public void sendMessageToDiscord(String message, ServerPlayer sender, ServerPlayer connectedPlayer, Color embedColor) {
         if (connectedPlayer != null && this.integration.getVanishIntegration().isVanished(connectedPlayer)) {
             return;
         }
-        this.sendMessageToDiscordUnchecked(message, sender);
+        this.sendMessageToDiscordUnchecked(message, sender, embedColor);
     }
 
-    private void sendMessageToDiscordUnchecked(String message, ServerPlayer sender) {
+    private void sendMessageToDiscordUnchecked(String message, ServerPlayer sender, Color embedColor) {
         if (message.trim().isEmpty()) {
             return;
         }
@@ -256,9 +274,9 @@ public class ChatBridge extends ListenerAdapter {
         message = Utils.formatMentions(message, this.integration, sender);
         if (this.messageSender == null || this.messageSender.hasChanged(message, sender)) {
             this.messageSender = new DiscordChatMessageSender(this.webhookClient, this.channel,
-                this.integration.getConfig(), message, sender);
+                this.integration.getConfig(), message, sender, embedColor);
         }
-            this.messageSender.sendMessage();
+        this.messageSender.sendMessage();
     }
 
     @Override
@@ -288,6 +306,6 @@ public class ChatBridge extends ListenerAdapter {
         } else {
             message = prefix + data;
         }
-        this.sendMessageToDiscord(message, sender, sender);
+        this.sendMessageToDiscord(message, sender, sender, null);
     }
 }
